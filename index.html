@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기계 구조 설계 노트 — DWG-2026-STRUCT</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<style>
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 45 920;
+}
+@import url('https://cdn.jsdelivr.net/npm/jetbrains-mono@1.0.6/css/jetbrains-mono.min.css');
+
+:root{
+  --paper: #eceadf;
+  --paper-line: #d8d4c4;
+  --ink: #1c2320;
+  --ink-soft: #4b5551;
+  --blue: #1f3d5c;
+  --blue-soft: #4a7a96;
+  --rust: #b8492f;
+  --steel: #7a8580;
+  --card: #f3f1e8;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Pretendard', -apple-system, sans-serif;
+  font-weight:420;
+  line-height:1.7;
+}
+::selection{ background:var(--rust); color:#fff; }
+
+/* ---- grid paper background ---- */
+.blueprint-bg{
+  background-image:
+    linear-gradient(var(--paper-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.mono{ font-family:'JetBrains Mono', monospace; }
+
+/* ---- title block (like engineering drawing header) ---- */
+.titleblock{
+  border-bottom: 3px solid var(--ink);
+  padding: 18px 28px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  flex-wrap:wrap;
+  gap:16px;
+  position:sticky;
+  top:0;
+  background:var(--paper);
+  z-index:50;
+}
+.titleblock .id{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--blue-soft);
+  letter-spacing:0.02em;
+}
+.titleblock h1{
+  margin:2px 0 0;
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+}
+.titleblock nav{
+  display:flex;
+  gap:2px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  flex-wrap:wrap;
+}
+.titleblock nav a{
+  color:var(--ink-soft);
+  text-decoration:none;
+  padding:6px 10px;
+  border:1px solid transparent;
+}
+.titleblock nav a:hover, .titleblock nav a:focus-visible{
+  border-color:var(--ink);
+  color:var(--ink);
+}
+
+/* ---- hero ---- */
+.hero{
+  padding: 64px 28px 56px;
+  max-width: 1040px;
+  margin:0 auto;
+  position:relative;
+}
+.hero .tag{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--rust);
+  margin:0 0 14px;
+}
+.hero h2{
+  font-size:clamp(34px, 5vw, 56px);
+  line-height:1.12;
+  margin:0 0 22px;
+  max-width:14ch;
+  font-weight:700;
+  letter-spacing:-0.015em;
+}
+.hero p{
+  max-width: 62ch;
+  font-size:17px;
+  color:var(--ink-soft);
+  margin:0 0 28px;
+}
+.hero svg{ position:absolute; right:0; top:40px; width:260px; opacity:0.9; }
+@media (max-width: 880px){ .hero svg{ display:none; } }
+
+.dim-line{ stroke:var(--blue-soft); stroke-width:1; }
+.dim-text{ font-family:'JetBrains Mono', monospace; font-size:9px; fill:var(--blue-soft); }
+
+/* ---- section shell ---- */
+section.chapter{
+  max-width:1040px;
+  margin:0 auto;
+  padding:52px 28px;
+  border-top:1px solid var(--paper-line);
+  scroll-margin-top:90px;
+}
+.chapter-head{
+  display:grid;
+  grid-template-columns: 76px 1fr;
+  gap:18px;
+  align-items:start;
+  margin-bottom:28px;
+}
+.chapter-num{
+  font-family:'JetBrains Mono', monospace;
+  font-size:13px;
+  color:var(--blue-soft);
+  border:1px solid var(--blue-soft);
+  padding:4px 6px;
+  text-align:center;
+  align-self:start;
+}
+.chapter-head h3{
+  font-size:26px;
+  margin:0 0 6px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+}
+.chapter-head .sub{
+  color:var(--ink-soft);
+  font-size:15px;
+  max-width:60ch;
+}
+
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media (max-width:760px){ .grid2, .grid3{ grid-template-columns:1fr; } }
+
+.card{
+  background:var(--card);
+  border:1px solid var(--paper-line);
+  padding:20px 22px;
+}
+.card h4{
+  margin:0 0 10px;
+  font-size:15px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.card h4 .swatch{
+  width:9px; height:9px;
+  background:var(--rust);
+  display:inline-block;
+  flex-shrink:0;
+}
+.card p{ margin:0 0 8px; font-size:14.5px; color:var(--ink); }
+.card p:last-child{ margin-bottom:0; }
+.card .formula{
+  font-family:'JetBrains Mono', monospace;
+  background:#fff;
+  border:1px dashed var(--steel);
+  padding:8px 10px;
+  font-size:13px;
+  color:var(--blue);
+  margin:10px 0;
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+  margin-top:6px;
+}
+th, td{
+  text-align:left;
+  padding:10px 12px;
+  border-bottom:1px solid var(--paper-line);
+  vertical-align:top;
+}
+th{
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--ink-soft);
+  font-weight:500;
+  border-bottom:1px solid var(--ink);
+}
+tr:last-child td{ border-bottom:none; }
+td.num{ font-family:'JetBrains Mono', monospace; color:var(--blue); white-space:nowrap; }
+
+.callout{
+  border-left:3px solid var(--rust);
+  padding:12px 18px;
+  background:var(--card);
+  font-size:14.5px;
+  margin:18px 0;
+}
+.callout strong{ color:var(--rust); }
+
+ul.spec-list{ list-style:none; margin:0; padding:0; }
+ul.spec-list li{
+  display:grid;
+  grid-template-columns: 20px 1fr;
+  gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid var(--paper-line);
+  font-size:14.5px;
+}
+ul.spec-list li:last-child{ border-bottom:none; }
+ul.spec-list li::before{
+  content:"—";
+  color:var(--blue-soft);
+  font-family:'JetBrains Mono', monospace;
+}
+
+/* checklist */
+.checklist{ display:flex; flex-direction:column; gap:0; border:1px solid var(--paper-line); }
+.check-row{
+  display:grid;
+  grid-template-columns: 40px 1fr 90px;
+  align-items:center;
+  padding:12px 16px;
+  border-bottom:1px solid var(--paper-line);
+  font-size:14.5px;
+  gap:10px;
+}
+.check-row:last-child{ border-bottom:none; }
+.check-row .box{
+  width:16px; height:16px;
+  border:1.5px solid var(--ink);
+}
+.check-row .cat{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px;
+  color:var(--rust);
+  text-align:right;
+}
+
+footer{
+  max-width:1040px;
+  margin:0 auto;
+  padding:40px 28px 80px;
+  color:var(--ink-soft);
+  font-size:13px;
+  border-top:1px solid var(--paper-line);
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+footer .mono{ color:var(--steel); }
+
+@media (max-width:640px){
+  .titleblock{ padding:14px 18px; }
+  .hero{ padding:40px 18px 36px; }
+  section.chapter{ padding:36px 18px; }
+  .chapter-head{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body class="blueprint-bg">
+
+<div class="titleblock">
+  <div>
+    <div class="id">DWG NO. MS-2026-07 &nbsp;·&nbsp; SCALE N.T.S. &nbsp;·&nbsp; REV. A</div>
+    <h1>기계 구조 설계 노트</h1>
+  </div>
+  <nav>
+    <a href="#ch1">01 개요</a>
+    <a href="#ch2">02 하중·응력</a>
+    <a href="#ch3">03 구조요소</a>
+    <a href="#ch4">04 체결</a>
+    <a href="#ch5">05 재료</a>
+    <a href="#ch6">06 동력전달</a>
+    <a href="#ch7">07 공차·끼워맞춤</a>
+    <a href="#ch8">08 체크리스트</a>
+  </nav>
+</div>
+
+<div class="hero">
+  <p class="tag">STRUCTURAL DESIGN REFERENCE / MECHANICAL ENGINEERING</p>
+  <h2>기계는 도면 한 장 전에, 구조를 먼저 설계한다.</h2>
+  <p>
+    하중이 어디서 들어와 어디로 빠져나가는지, 어떤 부재가 그 힘을 견디는지를 정하는 것이
+    기계 구조 설계의 본질이다. 이 노트는 하중과 응력의 기본기부터 체결, 재료 선정, 동력 전달
+    요소, 공차 관리까지 — 구조를 짤 때 반복적으로 마주치는 개념을 순서대로 정리한다.
+  </p>
+  <svg viewBox="0 0 260 200" fill="none">
+    <rect x="40" y="60" width="140" height="80" stroke="var(--ink)" stroke-width="1.5"/>
+    <line x1="40" y1="150" x2="180" y2="150" class="dim-line"/>
+    <line x1="40" y1="146" x2="40" y2="154" class="dim-line"/>
+    <line x1="180" y1="146" x2="180" y2="154" class="dim-line"/>
+    <text x="95" y="166" class="dim-text">140 mm</text>
+    <line x1="20" y1="60" x2="20" y2="140" class="dim-line"/>
+    <line x1="16" y1="60" x2="24" y2="60" class="dim-line"/>
+    <line x1="16" y1="140" x2="24" y2="140" class="dim-line"/>
+    <text x="-2" y="102" class="dim-text" transform="rotate(-90 10,102)">80 mm</text>
+    <circle cx="60" cy="80" r="4" stroke="var(--rust)" stroke-width="1.5"/>
+    <circle cx="160" cy="80" r="4" stroke="var(--rust)" stroke-width="1.5"/>
+    <circle cx="60" cy="120" r="4" stroke="var(--rust)" stroke-width="1.5"/>
+    <circle cx="160" cy="120" r="4" stroke="var(--rust)" stroke-width="1.5"/>
+    <line x1="110" y1="20" x2="110" y2="60" class="dim-line" stroke-dasharray="3 3"/>
+    <path d="M105 30 L110 20 L115 30" class="dim-line"/>
+    <text x="118" y="28" class="dim-text">F</text>
+  </svg>
+</div>
+
+<!-- 01 개요 -->
+<section class="chapter" id="ch1">
+  <div class="chapter-head">
+    <div class="chapter-num">01</div>
+    <div>
+      <h3>기계 구조 설계란</h3>
+      <p class="sub">힘의 경로를 설계하는 작업. 형상보다 하중 전달 경로를 먼저 그린다.</p>
+    </div>
+  </div>
+
+  <p>기계 구조 설계는 부품이나 조립체가 사용 중 받는 <strong>하중을 안전하게 지지·전달하면서도,
+  기능·중량·비용·제작성의 균형</strong>을 맞추는 과정이다. 단순히 CAD로 형상을 그리는 것이 아니라,
+  힘이 어디서 들어와 어떤 경로를 거쳐 지지점(또는 지면)으로 빠져나가는지를 먼저 구상하고,
+  그 경로 위에 있는 부재들의 단면과 재료, 연결 방식을 결정하는 것이 핵심이다.</p>
+
+  <div class="grid3" style="margin-top:22px;">
+    <div class="card">
+      <h4><span class="swatch"></span>기능 설계</h4>
+      <p>요구되는 동작·강성·정밀도를 만족하는 형상과 자유도를 정의한다.</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>구조 설계</h4>
+      <p>하중 경로, 단면 형상, 재료, 체결 방식을 정해 안전하게 힘을 전달한다.</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>생산·공정 설계</h4>
+      <p>가공·조립·검사 가능성을 고려해 실제로 만들 수 있는 형태로 구체화한다.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>설계 순서 원칙 —</strong> 하중 산정 → 하중 경로 스케치 → 부재 단면/재료 결정 →
+    체결부 설계 → 공차·끼워맞춤 지정 → 해석(계산 또는 FEA)으로 검증, 순으로 진행하면
+    뒤늦은 구조 변경을 크게 줄일 수 있다.
+  </div>
+</section>
+
+<!-- 02 하중과 응력 -->
+<section class="chapter" id="ch2">
+  <div class="chapter-head">
+    <div class="chapter-num">02</div>
+    <div>
+      <h3>하중과 응력의 기본</h3>
+      <p class="sub">모든 구조 파손은 응력이 재료의 한계를 넘을 때 시작된다.</p>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="swatch"></span>인장 / 압축 (Axial)</h4>
+      <p>부재 축 방향으로 당기거나 미는 하중. 단면 전체에 고르게 응력이 분포한다고 가정한다.</p>
+      <div class="formula">σ = P / A</div>
+      <p>σ: 응력(MPa), P: 축 하중(N), A: 단면적(mm²)</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>전단 (Shear)</h4>
+      <p>단면에 평행하게 작용해 재료를 미끄러뜨리듯 파괴하려는 하중. 볼트·리벳·핀 설계에서 지배적이다.</p>
+      <div class="formula">τ = V / A</div>
+      <p>τ: 전단응력(MPa), V: 전단력(N)</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>굽힘 (Bending)</h4>
+      <p>보(Beam)형 부재의 대표 하중. 단면 상하 표면에서 응력이 최대가 된다.</p>
+      <div class="formula">σ = M·c / I</div>
+      <p>M: 굽힘모멘트, c: 중립축에서 표면까지 거리, I: 단면 2차 모멘트</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>비틀림 (Torsion)</h4>
+      <p>축(Shaft)이 회전 동력을 전달할 때 발생. 표면에서 전단응력이 최대다.</p>
+      <div class="formula">τ = T·r / J</div>
+      <p>T: 토크, r: 반경, J: 극단면 2차 모멘트</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>안전율(Safety Factor) —</strong> 허용응력 = 항복강도 / 안전율. 일반 정적 구조물은
+    1.5~3, 반복 하중·피로가 우려되면 3~6, 인명과 직결되거나 하중 예측이 불확실한 경우
+    6 이상을 적용하는 것이 관례다. 안전율은 "모르는 만큼 곱하는 계수"에 가깝다 — 재료
+    편차, 하중 예측 오차, 제작 공차, 부식·피로에 의한 강도 저하를 함께 흡수한다.
+  </div>
+</section>
+
+<!-- 03 구조요소 -->
+<section class="chapter" id="ch3">
+  <div class="chapter-head">
+    <div class="chapter-num">03</div>
+    <div>
+      <h3>주요 구조 요소</h3>
+      <p class="sub">프레임, 판재, 브래킷 — 하중 경로를 이루는 기본 부재들.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>요소</th><th>역할</th><th>설계 포인트</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>프레임 (Frame)</strong></td>
+        <td>전체 구조의 뼈대. 다른 부품의 하중을 지면·베이스로 전달.</td>
+        <td>폐단면(각파이프)이 개단면(ㄷ형강)보다 비틀림 강성이 훨씬 높다.</td>
+      </tr>
+      <tr>
+        <td><strong>패널 / 판재</strong></td>
+        <td>면 하중을 받거나 프레임 사이를 채워 강성을 보강.</td>
+        <td>얇은 판은 좌굴(buckling)에 취약 — 리브나 비드로 강성 보강.</td>
+      </tr>
+      <tr>
+        <td><strong>브래킷</strong></td>
+        <td>서로 다른 방향의 두 부재를 연결하며 모멘트를 전달.</td>
+        <td>응력집중을 줄이기 위해 필렛(모서리 라운드)과 거싯 보강 적용.</td>
+      </tr>
+      <tr>
+        <td><strong>보강 리브 (Rib)</strong></td>
+        <td>얇은 판이나 케이스의 휨 강성을 국소적으로 높임.</td>
+        <td>리브 방향은 주된 굽힘 방향과 일치시켜야 효과가 크다.</td>
+      </tr>
+      <tr>
+        <td><strong>거싯 (Gusset)</strong></td>
+        <td>모서리 연결부에서 삼각형 보강판으로 강성 보강.</td>
+        <td>용접 거싯은 잔류응력 관리를 위해 용접 순서를 계획한다.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>단면 2차 모멘트 감각 —</strong> 같은 단면적이라도 재료를 중립축에서 멀리 배치할수록
+    굽힘 강성(I값)이 커진다. I형강·각파이프가 같은 무게의 원형 봉보다 굽힘에 훨씬 강한 이유다.
+    "재료를 어디에 놓을 것인가"가 구조 설계 효율의 핵심 질문이다.
+  </div>
+</section>
+
+<!-- 04 체결 -->
+<section class="chapter" id="ch4">
+  <div class="chapter-head">
+    <div class="chapter-num">04</div>
+    <div>
+      <h3>체결 방법</h3>
+      <p class="sub">부재와 부재를 잇는 방식이 곧 하중 전달의 실제 경로가 된다.</p>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <h4><span class="swatch"></span>볼트 체결</h4>
+      <p>분해·재조립이 필요하거나 조립 공차 보정이 필요할 때 기본 선택.</p>
+      <ul class="spec-list">
+        <li>체결력은 볼트 축력(예압)으로 관리 — 토크 관리가 곧 품질 관리</li>
+        <li>전단형 조인트는 볼트 개수·배치로 전단력 분산</li>
+        <li>진동 환경에서는 풀림 방지(스프링 와셔, 나일론 너트, 접착제) 필요</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>용접</h4>
+      <p>영구 결합, 강성이 가장 높지만 변형·잔류응력·재작업 어려움이 트레이드오프.</p>
+      <ul class="spec-list">
+        <li>필릿 용접은 다리길이(leg length)로 강도를 근사 계산</li>
+        <li>용접부는 열영향부(HAZ)에서 강도가 저하될 수 있음</li>
+        <li>박판 용접은 열변형으로 인한 뒤틀림 관리가 중요</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>리벳 / 핀</h4>
+      <p>전단 하중 위주, 진동에 강하고 이종재료 접합에도 쓰인다.</p>
+      <ul class="spec-list">
+        <li>주로 전단 파괴, 지압(bearing) 파괴 두 가지를 함께 검토</li>
+        <li>핀은 회전 자유도를 허용해야 하는 링크·관절부에 사용</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>체결부 파손 모드 —</strong> 볼트 체결은 ① 볼트 자체의 전단/인장 파단, ② 구멍 주변
+    판재의 지압(bearing) 파손, ③ 판재 가장자리의 찢어짐(tear-out), ④ 판재 순단면 인장 파단
+    — 네 가지를 모두 검토해야 진짜 약한 고리를 찾을 수 있다.
+  </div>
+</section>
+
+<!-- 05 재료 -->
+<section class="chapter" id="ch5">
+  <div class="chapter-head">
+    <div class="chapter-num">05</div>
+    <div>
+      <h3>재료 선정</h3>
+      <p class="sub">강도, 강성, 무게, 가공성, 비용 — 다섯 축 사이의 균형점을 찾는다.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>재료</th><th>비강도 특성</th><th>주 용도</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="num">SS400 / S45C</td>
+        <td>탄소강. 강도·강성 우수, 저렴, 용접성 양호.</td>
+        <td>프레임, 축, 일반 구조 부재</td>
+      </tr>
+      <tr>
+        <td class="num">STS304 / 316</td>
+        <td>스테인리스강. 내식성 우수, 강도는 탄소강과 비슷.</td>
+        <td>식품·화학·해양 환경 부품</td>
+      </tr>
+      <tr>
+        <td class="num">AL6061-T6 / 7075</td>
+        <td>알루미늄. 밀도가 강의 1/3, 비강도 우수, 가공성 좋음.</td>
+        <td>경량 프레임, 항공·로봇 부품</td>
+      </tr>
+      <tr>
+        <td class="num">POM / PA6</td>
+        <td>엔지니어링 플라스틱. 자기윤활성, 저비용, 저강도.</td>
+        <td>기어, 부시, 비하중 커버류</td>
+      </tr>
+      <tr>
+        <td class="num">CFRP</td>
+        <td>탄소섬유 복합재. 비강도·비강성 최상급, 고비용.</td>
+        <td>고성능 경량 구조, 진동 감쇠 요구부</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>강성 vs 강도 —</strong> 강도(항복강도)는 "얼마나 견디는가", 강성(탄성계수 E)은
+    "얼마나 변형하는가"를 말한다. 강판 두께를 늘려도 응력은 낮아지지만, 재료를 알루미늄으로
+    바꾸면 같은 무게에서 강성이 오히려 떨어질 수 있다 — 알루미늄의 E는 강의 약 1/3이기 때문이다.
+    두 특성은 서로 다른 문제이므로 반드시 따로 검토한다.
+  </div>
+</section>
+
+<!-- 06 동력전달 -->
+<section class="chapter" id="ch6">
+  <div class="chapter-head">
+    <div class="chapter-num">06</div>
+    <div>
+      <h3>동력 전달 요소</h3>
+      <p class="sub">축, 베어링, 기어 — 회전 동력이 흐르는 경로를 설계한다.</p>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="swatch"></span>축 (Shaft)</h4>
+      <p>토크와 굽힘을 동시에 받는 경우가 많아 조합응력으로 검토한다.</p>
+      <div class="formula">d ≥ (16·T / π·τ_allow)^(1/3)</div>
+      <p>단순 비틀림 기준 최소 축경 산정식(참고용). 실제로는 굽힘·피로를 함께 고려한다.</p>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>베어링</h4>
+      <p>축을 지지하며 회전 마찰을 최소화. 하중 방향에 따라 형식을 구분한다.</p>
+      <ul class="spec-list">
+        <li>레이디얼 베어링 — 축에 수직인 하중 지지</li>
+        <li>스러스트 베어링 — 축 방향 하중 지지</li>
+        <li>정격수명 L10은 베어링의 90%가 도달하는 회전수 기준</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>기어</h4>
+      <p>회전수·토크를 변환하며 동력을 전달. 잇수비가 감속비를 결정한다.</p>
+      <ul class="spec-list">
+        <li>모듈(m)이 클수록 이가 커지고 전달 토크 여유가 커짐</li>
+        <li>평기어는 단순, 헬리컬 기어는 조용하지만 축방향 하중 발생</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="swatch"></span>커플링</h4>
+      <p>두 축을 연결하며 축 정렬 오차를 흡수하는 역할도 겸한다.</p>
+      <ul class="spec-list">
+        <li>강성 커플링은 축 정렬이 완벽해야 함</li>
+        <li>플렉시블 커플링은 각/평행/축방향 오정렬을 일부 흡수</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 07 공차 -->
+<section class="chapter" id="ch7">
+  <div class="chapter-head">
+    <div class="chapter-num">07</div>
+    <div>
+      <h3>공차와 끼워맞춤</h3>
+      <p class="sub">도면 위 숫자 하나가 조립 가능 여부와 원가를 동시에 결정한다.</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>끼워맞춤 종류</th><th>관계</th><th>예시 용도</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>헐거운 끼워맞춤<br><span class="mono" style="font-size:12px;color:var(--steel)">Clearance fit</span></td>
+        <td>구멍이 항상 축보다 큼 — 항상 틈새 존재</td>
+        <td>회전·슬라이딩이 필요한 축-부시</td>
+      </tr>
+      <tr>
+        <td>억지 끼워맞춤<br><span class="mono" style="font-size:12px;color:var(--steel)">Interference fit</span></td>
+        <td>축이 항상 구멍보다 큼 — 압입으로 결합</td>
+        <td>베어링 내륜 압입, 영구 고정부</td>
+      </tr>
+      <tr>
+        <td>중간 끼워맞춤<br><span class="mono" style="font-size:12px;color:var(--steel)">Transition fit</span></td>
+        <td>공차 범위에 따라 틈새 또는 억지가 됨</td>
+        <td>위치 결정용 핀·키 결합</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>공차는 원가다 —</strong> IT등급이 한 단계 촘촘해질수록 가공 시간과 검사 비용이
+    비선형적으로 늘어난다. 기능상 꼭 필요한 면에만 정밀 공차를 주고, 나머지는 일반 공차로
+    풀어주는 것이 실무에서 가장 흔히 놓치는 원가 절감 포인트다.
+  </div>
+</section>
+
+<!-- 08 체크리스트 -->
+<section class="chapter" id="ch8">
+  <div class="chapter-head">
+    <div class="chapter-num">08</div>
+    <div>
+      <h3>설계 검토 체크리스트</h3>
+      <p class="sub">도면을 넘기기 전, 마지막으로 점검하는 항목들.</p>
+    </div>
+  </div>
+
+  <div class="checklist">
+    <div class="check-row"><div class="box"></div><div>모든 하중 케이스(정적·동적·충격·최악조건)를 정의했는가</div><div class="cat">하중</div></div>
+    <div class="check-row"><div class="box"></div><div>하중 경로 상의 모든 부재에서 안전율이 목표치 이상인가</div><div class="cat">응력</div></div>
+    <div class="check-row"><div class="box"></div><div>반복 하중이 있다면 피로 수명을 별도로 검토했는가</div><div class="cat">피로</div></div>
+    <div class="check-row"><div class="box"></div><div>체결부의 파손 모드(전단/지압/찢어짐)를 모두 확인했는가</div><div class="cat">체결</div></div>
+    <div class="check-row"><div class="box"></div><div>응력집중부(모서리, 단차, 구멍)에 필렛을 적용했는가</div><div class="cat">형상</div></div>
+    <div class="check-row"><div class="box"></div><div>가공·조립 순서상 실제로 만들 수 있는 형상인가</div><div class="cat">제작성</div></div>
+    <div class="check-row"><div class="box"></div><div>공차가 기능적으로 필요한 곳에만 좁게 지정되었는가</div><div class="cat">공차</div></div>
+    <div class="check-row"><div class="box"></div><div>부식·온도·진동 등 사용 환경 요인을 반영했는가</div><div class="cat">환경</div></div>
+  </div>
+</section>
+
+<footer>
+  <span>기계 구조 설계 노트 — 개인 학습용 정리</span>
+  <span class="mono">REV.A · 2026-09-14</span>
+</footer>
+
+</body>
+</html>
