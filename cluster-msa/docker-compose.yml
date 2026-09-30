@@ -1,0 +1,49 @@
+# 로컬에서 MSA 전체를 한 번에 띄우기 위한 오케스트레이션 정의.
+# AWS로 옮길 때는 이 서비스 3개를 각각 ECS 서비스(또는 EKS Deployment)로 매핑하면 된다.
+services:
+  cluster-service:
+    build: ./cluster-service
+    container_name: cluster-service
+    ports:
+      - "8001:8000"
+    networks:
+      - cluster-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  node-service:
+    build: ./node-service
+    container_name: node-service
+    ports:
+      - "8002:8000"
+    networks:
+      - cluster-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "8000:8000"
+    environment:
+      # 컨테이너 네트워크 안에서는 서비스 이름 = 호스트명으로 통신한다.
+      CLUSTER_SERVICE_URL: "http://cluster-service:8000"
+      NODE_SERVICE_URL: "http://node-service:8000"
+    depends_on:
+      cluster-service:
+        condition: service_healthy
+      node-service:
+        condition: service_healthy
+    networks:
+      - cluster-net
+
+networks:
+  cluster-net:
+    driver: bridge
